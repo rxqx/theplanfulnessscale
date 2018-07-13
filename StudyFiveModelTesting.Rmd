@@ -1,0 +1,124 @@
+This script was used in the development of the Planfulness Scale (Ludwig, Srivastava, & Berkman, 2018). In this script, the hypothesized model of the Planfulness Scale is tested for performance. This script can be used with any of the Study 5 data files avaialble on the OSF project for the Planfulness Scale: https://osf.io/zs9kh/
+```{r}
+##Required packages to run the script
+if(!require(dplyr)) install.packages("dplyr")
+if(!require(lavaan)) install.packages("lavaan")
+if(!require(semPlot)) install.packages("semPlot")
+
+data=read.csv("PATH TO STUDY FIVE .CSV GOES HERE")
+````
+Run the model. Planfulness is set as a first-order (superordinate) factor explaining the three second-order (subordinate) factors of TO, MF, and CS. The ACQ factor is included as a measurement factor.
+```{r}
+require(lavaan)
+fullmodel='
+ # Latent variables
+  TO =~ REVQ3TP + Q1TP + Q7TP + REVQ11TP + Q14TP + REVQ20TP + Q23TP + REVQ25TP +  Q28TP +  REVQ30TP 
+  CS =~ REVQ2CS +  REVQ4CS + Q5CS +  Q8CS +  REVQ12CS +	Q15CS +	Q17CS +	REVQ18CS +	REVQ21CS +	Q26CS
+  MF =~ REVQ6MF +  Q9MF +	REVQ10MF +	REVQ13MF +	Q16MF +	Q19MF +	REVQ22MF +	Q24MF +	Q27MF +	REVQ29MF
+  ACQ =~ -1*REVQ3TP + 1*Q1TP + 1*Q7TP + -1*REVQ11TP + 1*Q14TP + -1*REVQ20TP + 1*Q23TP + -1*REVQ25TP +  1*Q28TP +  -1*REVQ30TP + -1*REVQ2CS +  -1*REVQ4CS + 1*Q5CS +  1*Q8CS +	-1*REVQ12CS +	1*Q15CS +	1*Q17CS +	-1*REVQ18CS +	-1*REVQ21CS +	1*Q26CS + -1*REVQ6MF +  1*Q9MF +  -1*REVQ10MF +	-1*REVQ13MF +	1*Q16MF +	1*Q19MF +	-1*REVQ22MF +	1*Q24MF +	1*Q27MF +	-1*REVQ29MF
+  ACQ~~0*P
+  P =~ MF+CS+TO
+'
+#Fit the model
+fit.fullmodel=cfa(fullmodel, data=data, sample.nobs = nrow(data))
+#Display summary output
+summary(fit.fullmodel, fit.measures=TRUE, standardized=TRUE, rsquare=TRUE)
+
+require(semPlot)
+#Get a visual of the path
+semPaths(fullfit.constrained, what="std", layout="tree", title=TRUE, style="LISREL")
+```
+Next, run alternate models and compare them to the full model.
+First, a model without the measurement factor ACQ.
+```{r}
+#Establish latent variables and indicators, build model
+FullnoAcq='
+ # Latent variables
+  CS =~ REVQ2CS +  REVQ4CS + Q5CS +  Q8CS +  REVQ12CS +  Q15CS +	Q17CS +	REVQ18CS +	REVQ21CS +	Q26CS
+  TO =~ REVQ3TP + Q1TP + Q7TP + REVQ11TP + Q14TP + REVQ20TP + Q23TP + REVQ25TP +  Q28TP +  REVQ30TP 
+  MF =~ REVQ6MF +  Q9MF +	REVQ10MF +	REVQ13MF +	Q16MF +	Q19MF +	REVQ22MF +	Q24MF +	Q27MF +	REVQ29MF
+P =~ TO + CS + MF
+'
+#Fit the model
+shortfit.FullnoAcq=cfa(FullnoAcq, data=data, sample.nobs = nrow(data))
+#Display summary output
+summary(shortfit.FullnoAcq, fit.measures=TRUE, standardized=TRUE, rsquare=TRUE)
+
+#Get a visual of the path
+semPaths(shortfit.FullnoAcq, what="std", layout="tree", title=TRUE, style="LISREL")
+
+
+#Chi-square change test to compare the nested models
+anova(shortfit.FullnoAcq,fit.fullmodel)
+```
+Next, an alternative model without the first-order Planfulness factor.
+```{r}
+#establish latent variables and indicators, build model
+ACQwithoutP='
+ # Latent variables
+  TO =~ REVQ3TP + Q1TP + Q7TP + REVQ11TP + Q14TP + REVQ20TP + Q23TP + REVQ25TP +  Q28TP +  REVQ30TP 
+  CS =~ REVQ2CS +  REVQ4CS + Q5CS +  Q8CS +  REVQ12CS +  Q15CS +	Q17CS +	REVQ18CS +	REVQ21CS +	Q26CS
+  MF =~ REVQ6MF +  Q9MF +	REVQ10MF +	REVQ13MF +	Q16MF +	Q19MF +	REVQ22MF +	Q24MF +	Q27MF +	REVQ29MF
+  ACQ =~ -1*REVQ3TP + 1*Q1TP + 1*Q7TP + -1*REVQ11TP + 1*Q14TP + -1*REVQ20TP + 1*Q23TP + -1*REVQ25TP +  1*Q28TP +  -1*REVQ30TP + -1*REVQ2CS +  -1*REVQ4CS + 1*Q5CS +  1*Q8CS +	-1*REVQ12CS +	1*Q15CS +	1*Q17CS +	-1*REVQ18CS +	-1*REVQ21CS +	1*Q26CS + -1*REVQ6MF +  1*Q9MF +  -1*REVQ10MF +	-1*REVQ13MF +	1*Q16MF +	1*Q19MF +	-1*REVQ22MF +	1*Q24MF +	1*Q27MF +	-1*REVQ29MF
+ACQ~~0*TO+0*CS+0*MF
+'
+#Fit the model
+shortfit.ACQwithoutP=cfa(ACQwithoutP, data=data, sample.nobs = nrow(data))
+#Display summary output
+summary(shortfit.ACQwithoutP, fit.measures=TRUE, standardized=TRUE, rsquare=TRUE)
+
+#Get a visual of the path
+semPaths(shortfit.ACQwithoutP, what="std", layout="tree", title=TRUE, style="LISREL")
+
+#Chi-square change test to compare the nested models
+anova(shortfit.ACQwithoutP,fit.fullmodel)
+```
+Finally, compare the full model to an alternative model with no second-order subscale factors.
+```{r}
+#Establish latent variables and indicators, build model
+ACQwithPnosubs='
+ # Latent variables
+P =~ REVQ3TP + Q1TP + Q7TP + REVQ11TP + Q14TP + REVQ20TP + Q23TP + REVQ25TP +  Q28TP +  REVQ30TP + REVQ2CS +  REVQ4CS + Q5CS +  Q8CS +  REVQ12CS +  Q15CS +	Q17CS +	REVQ18CS +	REVQ21CS +	Q26CS + REVQ6MF +  Q9MF +	REVQ10MF +	REVQ13MF +	Q16MF +	Q19MF +	REVQ22MF +	Q24MF +	Q27MF +	REVQ29MF
+  ACQ =~ -1*REVQ3TP + 1*Q1TP + 1*Q7TP + -1*REVQ11TP + 1*Q14TP + -1*REVQ20TP + 1*Q23TP + -1*REVQ25TP +  1*Q28TP +  -1*REVQ30TP + -1*REVQ2CS +  -1*REVQ4CS + 1*Q5CS +  1*Q8CS +	-1*REVQ12CS +	1*Q15CS +	1*Q17CS +	-1*REVQ18CS +	-1*REVQ21CS +	1*Q26CS + -1*REVQ6MF +  1*Q9MF +  -1*REVQ10MF +	-1*REVQ13MF +	1*Q16MF +	1*Q19MF +	-1*REVQ22MF +	1*Q24MF +	1*Q27MF +	-1*REVQ29MF
+ACQ~~0*P
+'
+#Fit the model
+shortfit.ACQwithPnosubs=cfa(ACQwithPnosubs, data=data, sample.nobs = nrow(data))
+#Display summary output
+summary(shortfit.ACQwithPnosubs, fit.measures=TRUE, standardized=TRUE, rsquare=TRUE)
+
+#Chi-square change test to compare the nested models
+anova(shortfit.ACQwithPnosubs,fit.fullmodel)
+```
+Lastly, below builds the parceled model described in Ludwig, Srivastava, & Berkman (2018).
+
+First, construct the parcels for the second-order factors TO, CS, & MF
+```{r}
+data$TOP1=(data$Q1TP+data$Q7TP+data$REVQ25TP)/3
+data$TOP2=(data$REVQ3TP+data$Q23TP+data$REVQ30TP)/3
+data$TOP3=(data$REVQ11TP+data$Q14TP+data$Q28TP+data$REVQ20TP)/4
+
+data$CSP1=(data$Q8CS+data$REVQ2CS+data$Q15CS)/3
+data$CSP2=(data$Q5CS+data$REVQ18CS+data$REVQ21CS)/3
+data$CSP3=(data$Q17CS+data$REVQ4CS+data$REVQ12CS+data$Q26CS)/4
+
+data$MFP1=(data$REVQ13MF+data$Q9MF+data$REVQ22MF)/3
+data$MFP2=(data$Q24MF+data$REVQ29MF+data$REVQ10MF)/3
+data$MFP3=(data$REVQ6MF+data$Q16MF+data$Q19MF+data$Q27MF)/4
+
+#Establish latent variables and indicators, build model
+Parceled='
+ # Latent variables
+  TO =~ TOP1+TOP2+TOP3
+  CS =~ CSP1+CSP2+CSP3
+  MF =~ MFP1+MFP2+MFP3
+  P =~ MF+CS+TO
+'
+#Fit the model
+fit.Parceled=cfa(Parceled, data=data, sample.nobs = nrow(data))
+#Display summary output
+summary(fit.Parceled, fit.measures=TRUE, standardized=TRUE, rsquare=TRUE)
+
+#Get a visual of the path
+semPaths(fit.Parceled, what="std", layout="tree", title=TRUE, style="LISREL")
+ ```

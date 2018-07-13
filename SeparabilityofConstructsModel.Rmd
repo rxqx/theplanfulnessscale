@@ -1,0 +1,103 @@
+This script was used in the development of the Planfulness Scale (Ludwig, Srivastava, & Berkman, 2018). In this script, the Planfulness Scale is compared against conceptually related scales to test for separabilty of constructus. The dataset used in this script is Study 5 Sample B, avaialble on the OSF project for the Planfulness Scale: https://osf.io/zs9kh/
+
+```{r}
+##Required packages to run the script
+if(!require(dplyr)) install.packages("dplyr")
+if(!require(lavaan)) install.packages("lavaan")
+if(!require(semPlot)) install.packages("semPlot")
+
+##Import data, remove the top row of item decsriptions, and convert all factors to numeric.
+require(dplyr)
+data=read.csv("PATH TO STUDY 5 SAMPLE B .CSV FILE GOES HERE")%>% 
+  slice(.,-1)
+data=as.data.frame(sapply(data, as.numeric))
+````
+Run the separability of constructs model:
+First, build parcels (see Ludwig, Srivastava, & Berkman 2018 for details on how parcels were constructed).
+Then, build and run the model in lavaan.
+```{r}
+require(lavaan)
+##PLANFULNESS##
+data$TOP1=(data$Q1TP+data$Q7TP+data$REVQ25TP)/3
+data$TOP2=(data$REVQ3TP+data$Q23TP+data$REVQ30TP)/3
+data$TOP3=(data$REVQ11TP+data$Q14TP+data$Q28TP+data$REVQ20TP)/4
+
+data$CSP1=(data$Q8CS+data$REVQ2CS+data$Q15CS)/3
+data$CSP2=(data$Q5CS+data$REVQ18CS+data$REVQ21CS)/3
+data$CSP3=(data$Q17CS+data$REVQ4CS+data$REVQ12CS+data$Q26CS)/4
+
+data$MFP1=(data$REVQ13MF+data$Q9MF+data$REVQ22MF)/3
+data$MFP2=(data$Q24MF+data$REVQ29MF+data$REVQ10MF)/3
+data$MFP3=(data$REVQ6MF+data$Q16MF+data$Q19MF+data$Q27MF)/4
+
+##GRIT##
+data$GRITP1=(data$REVGr8+data$Gr12+data$Gr6+data$REVGr11)/4
+data$GRITP2=(data$Gr9+data$REVGr2+data$Gr10+data$Gr1)/4
+data$GRITP3=(data$REVGr5+data$REVGr7+data$REVGr3+data$Gr4)/4
+
+##BIS##
+data$BISP1=(data$Bis17+data$Bis5+data$REVBis13+data$Bis19+data$REVBis7+data$REVBis30+data$Bis25+data$Bis21+data$Bis27+data$Bis4)/10
+data$BISP2=(data$REVBis8+data$REVBis1+data$REVBis9+data$Bis14+data$Bis22+data$REVBis10+data$Bis28+data$Bis16+data$REVBis15+data$Bis3)/10
+data$BISP3=(data$REVBis20+data$Bis2+data$REVBis12+data$Bis18+data$Bis6+data$Bis26+data$Bis24+data$Bis11+data$Bis23+data$REVBis29)/10
+
+##BSCS##
+data$BSCSP1=(data$REVBSCS12+data$REVBSCS10+data$BSCS1+data$BSCS6+data$REVBSCS4)/5
+data$BSCSP2=(data$REVBSCS2+data$REVBSCS5+data$BSCS8+data$BSCS11)/4
+data$BSCSP3=(data$REVBSCS9+data$REVBSCS7+data$REVBSCS3+data$REVBSCS13)/4
+
+##CONSCI##
+data$CONSCIP1=(data$BFI28+data$REVBFI8+data$REVBFI18)/3
+data$CONSCIP2=(data$BFI38+data$BFI3+data$BFI13)/3
+data$CONSCIP3=(data$BFI33+data$REVBFI43+data$REVBFI23)/3
+
+##OUTCOMES##
+data$OUTP1=(data$Q9OUT+data$REVOUT3+data$Q8OUT)/3
+data$OUTP2=(data$REVOUT2+data$Q7OUT+data$Q5OUT)/3
+data$OUTP3=(data$Q1OUT+data$Q4OUT+data$REVOUT6)/3
+
+#Establish latent variables and indicators, build model
+ParceledTest='
+ # Latent variables
+  OUTCOMES =~ OUTP1+OUTP2+OUTP3
+  TO =~ TOP1+TOP2+TOP3
+  CS =~ CSP1+CSP2+CSP3
+  MF =~ MFP1+MFP2+MFP3
+  GRIT =~ GRITP1+GRITP2+GRITP3
+  BIS =~ BISP1+BISP2+BISP3
+  BSCS =~ BSCSP1+BSCSP2+BSCSP3
+  CONSCI =~ CONSCIP1+CONSCIP2+CONSCIP3
+  P =~ MF+CS+TO
+  OUTCOMES ~ CONSCI+P+BSCS+BIS+GRIT
+'
+fit.ParceledTest=cfa(ParceledTest, data=data, sample.nobs = nrow(data))
+#Display summary output
+summary(fit.ParceledTest, fit.measures=TRUE, standardized=TRUE)
+
+#Diagram the model
+require(semPlot)
+semPaths(fit.ParceledTest, what="est", layout="tree", title=TRUE, style="LISREL")
+```
+Finally, can test to see if the betas of the two predictors that survived the separability of constructs model with significance (Planfulness and Conscientiousness) are themselves different. Build a model where those latent variable paths are constrained to be equal, then compare that model to the orignal tested above; if the chi-sq change test is statistically significant, then so is the difference between the betas.
+```{r}
+#Use equality constraints to compare P to C
+EqualityTest='
+ # Latent variables
+  OUTCOMES =~ OUTP1+OUTP2+OUTP3
+  TO =~ TOP1+TOP2+TOP3
+  CS =~ CSP1+CSP2+CSP3
+  MF =~ MFP1+MFP2+MFP3
+  GRIT =~ GRITP1+GRITP2+GRITP3
+  BIS =~ BISP1+BISP2+BISP3
+  BSCS =~ BSCSP1+BSCSP2+BSCSP3
+  CONSCI =~ CONSCIP1+CONSCIP2+CONSCIP3
+  P =~ MF+CS+TO
+  OUTCOMES ~ eq*P+eq*CONSCI+BSCS+BIS+GRIT
+'
+fit.EqualityTest=cfa(EqualityTest, data=data, sample.nobs = nrow(data))
+#Display summary output
+summary(fit.EqualityTest, fit.measures=TRUE, standardized=TRUE)
+
+
+#Compare the last 2 models
+anova(fit.ParceledTest, fit.EqualityTest)
+```
